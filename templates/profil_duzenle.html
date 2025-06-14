@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+
+{% block title %}Profili Düzenle{% endblock %}
+
+{% block content %}
+    <h1>Profili Düzenle</h1>
+    <form method="POST">
+        <label for="bio">Bio:</label><br>
+        <textarea name="bio" id="bio" rows="4" cols="50">{{ user.bio }}</textarea><br>
+        <input type="submit" value="Kaydet">
+    </form>
+{% endblock %}

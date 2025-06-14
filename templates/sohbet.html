@@ -1,0 +1,141 @@
+{% extends 'base.html' %}
+
+{% block title %}Sohbet: {{ other_user.username }} - Yemek Sözlük{% endblock %}
+
+{% block content %}
+    <style>
+        .chat-box {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background-color: #fdfdfd;
+            padding: 20px;
+            max-width: 700px;
+            margin: 20px auto;
+            display: flex;
+            flex-direction: column;
+            height: 600px; /* Sohbet kutusu yüksekliği */
+            overflow: hidden; /* İçerik taşarsa kaydırma çubuğu */
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+        .chat-header {
+            text-align: center;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 15px;
+            margin-bottom: 15px;
+        }
+        .chat-header h2 {
+            margin: 0;
+            color: #333;
+        }
+        .messages {
+            flex-grow: 1; /* Mesajların tüm alanı doldurmasını sağlar */
+            overflow-y: auto; /* Mesajlar taşarsa kaydırma çubuğu */
+            padding-right: 10px; /* Kaydırma çubuğu için boşluk */
+        }
+        .message-bubble {
+            display: flex;
+            margin-bottom: 10px;
+            align-items: flex-end; /* Mesaj baloncukları alta hizalı */
+        }
+        .message-bubble.sent {
+            justify-content: flex-end; /* Gönderilen mesajlar sağda */
+        }
+        .message-bubble.received {
+            justify-content: flex-start; /* Alınan mesajlar solda */
+        }
+        .message-content {
+            padding: 10px 15px;
+            border-radius: 20px;
+            max-width: 70%;
+            position: relative;
+        }
+        .message-bubble.sent .message-content {
+            background-color: #007bff;
+            color: white;
+            border-bottom-right-radius: 5px; /* Köşeyi hafifçe düzeltir */
+        }
+        .message-bubble.received .message-content {
+            background-color: #e9e9eb;
+            color: #333;
+            border-bottom-left-radius: 5px; /* Köşeyi hafifçe düzeltir */
+        }
+        .message-info {
+            font-size: 0.75em;
+            color: #888;
+            margin-top: 5px;
+            text-align: right;
+            white-space: nowrap; /* Tarih ve saatin tek satırda kalmasını sağlar */
+        }
+        .message-bubble.received .message-info {
+            text-align: left;
+        }
+        .message-form {
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+            display: flex;
+            gap: 10px;
+        }
+        .message-form textarea {
+            flex-grow: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            resize: vertical; /* Sadece dikey olarak boyutlandırılabilsin */
+            min-height: 40px;
+            max-height: 100px;
+        }
+        .message-form button {
+            padding: 10px 20px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            white-space: nowrap; /* Buton içeriği tek satırda kalsın */
+        }
+        .message-form button:hover {
+            background-color: #218838;
+        }
+    </style>
+
+    <div class="chat-box">
+        <div class="chat-header">
+            <h2>{{ other_user.username }} ile Sohbet</h2>
+            <a href="{{ url_for('profil', username=other_user.username) }}">({{ other_user.username }} profili)</a>
+        </div>
+
+        <div class="messages" id="chat-messages">
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="message-bubble {% if message.sender_id == session.user_id %}sent{% else %}received{% endif %}">
+                        <div class="message-content">
+                            <p>{{ message.message_text }}</p>
+                            <span class="message-info">{{ message.timestamp }}</span>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <p style="text-align: center; color: #888;">Henüz mesajlaşma başlamadı.</p>
+            {% endif %}
+        </div>
+
+        <div class="message-form">
+            <form action="{{ url_for('sohbet', other_user_id=other_user.id) }}" method="POST" style="display: flex; width: 100%; gap: 10px;">
+                <textarea name="message_text" placeholder="Mesajınızı yazın..." required></textarea>
+                <button type="submit">Gönder</button>
+            </form>
+        </div>
+    </div>
+
+    {# Sohbet kutusunun her yüklendiğinde en alta kaydırılması için JavaScript #}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var messagesDiv = document.getElementById('chat-messages');
+            if (messagesDiv) {
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            }
+        });
+    </script>
+{% endblock %}

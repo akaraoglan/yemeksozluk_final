@@ -1,0 +1,115 @@
+{% extends 'base.html' %}
+
+{% block title %}Beğenilen Entryler - Yemek Sözlük{% endblock %}
+
+{% block content %}
+    <style>
+        /* Entry stilini (baslik_detay.html'deki gibi) tekrar tanımlıyoruz */
+        .entry-item {
+            margin-bottom: 15px; /* Entryler arasında boşluk bırakmak için */
+            padding: 10px 0; /* Metin için hafif bir iç boşluk */
+            position: relative;
+            min-height: 100px; /* Minimum yükseklik */
+            border-bottom: 1px solid #eee; /* Entryler arasına ince çizgi */
+        }
+        .entry-item:last-child {
+            border-bottom: none; /* Son entry'nin altında çizgi olmasın */
+        }
+        .entry-title {
+            font-size: 1.2em;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        .entry-title a {
+            text-decoration: none;
+            color: #333;
+        }
+        .entry-title a:hover {
+            text-decoration: underline;
+        }
+        .entry-text {
+            margin-bottom: 30px; /* Bilgi kısmı ve butonlar için altta boşluk bırak */
+            /* Sağdaki bilgi bloğunun üzerine gelmemesi için padding ekleyelim */
+            padding-right: 150px; /* Yazar ve tarih bilgileri için yeterli boşluk */
+        }
+        .entry-info {
+            position: absolute;
+            bottom: 10px;
+            right: 0px;
+            text-align: right;
+            font-size: 0.8em;
+            color: #777;
+            line-height: 1.3;
+        }
+        .entry-info p {
+            margin: 0;
+        }
+        .entry-info a {
+            color: #0056b3;
+            text-decoration: none;
+        }
+        .entry-info a:hover {
+            text-decoration: underline;
+        }
+        /* Beğeni ve Paylaşma Butonları (baslik_detay.html'deki ile aynı stil) */
+        .entry-actions {
+            position: absolute;
+            bottom: 10px;
+            left: 0;
+            display: flex;
+            gap: 10px;
+            font-size: 1.1em;
+        }
+        .entry-actions a {
+            color: #555;
+            text-decoration: none;
+            padding: 5px;
+            border-radius: 4px;
+            transition: background-color 0.2s ease;
+        }
+        .entry-actions a:hover {
+            background-color: #f0f0f0;
+        }
+        .entry-actions .liked i {
+            color: #dc3545;
+        }
+        .entry-actions .share-btn {
+            cursor: pointer;
+            color: #555;
+            padding: 5px;
+            border-radius: 4px;
+        }
+        .entry-actions .share-btn:hover {
+            background-color: #f0f0f0;
+        }
+    </style>
+
+    <h1>Beğenilen Entryler</h1>
+
+    {% if begenilen_entryler %}
+        <ul>
+            {% for entry in begenilen_entryler %}
+                <li class="entry-item">
+                    <div class="entry-title">
+                        <a href="{{ url_for('baslik_detay', baslik_id=entry.baslik_id) }}">{{ entry.baslik_adi }}</a>
+                    </div>
+                    <div class="entry-text">
+                        <p>{{ entry.entry_metni }}</p>
+                    </div>
+                    <div class="entry-actions">
+                        {# Beğenilenler sayfasında her zaman dolu kalp gösterilir ve vazgeçme linki verilir #}
+                        <a href="{{ url_for('entry_begenmekten_vazgec', entry_id=entry.entry_id) }}" class="liked" title="Beğeniyi Kaldır"><i class="fas fa-heart"></i></a>
+                        <span class="share-btn" title="Paylaş"><i class="fas fa-share-alt"></i></span>
+                    </div>
+                    <div class="entry-info">
+                        <p>Yazar: <a href="{{ url_for('profil', username=entry.username) }}">{{ entry.username }}</a></p>
+                        <p>Tarih: {{ entry.tarih }}</p>
+                    </div>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>Henüz beğendiğiniz bir entry bulunmuyor.</p>
+    {% endif %}
+{% endblock %}

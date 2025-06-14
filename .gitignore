@@ -1,0 +1,18 @@
+# Python ile ilgili dosyalar
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/           # Sanal ortam klasörü
+*.env           # Ortam değişkeni dosyaları
+.idea/          # PyCharm gibi IDE dosyaları
+.vscode/        # VS Code gibi IDE dosyaları
+
+# Veritabanı dosyaları
+*.db            # Tüm .db uzantılı dosyalar (yemeksozluk.db dahil)
+
+# İşletim sistemi veya editöre özgü diğer dosyalar
+.DS_Store       # macOS özgü
+Thumbs.db       # Windows özgü

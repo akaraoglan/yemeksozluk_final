@@ -1,0 +1,112 @@
+{% extends 'base.html' %}
+
+{% block title %}Mesajlar - Yemek Sözlük{% endblock %}
+
+{% block content %}
+    <style>
+        .message-list {
+            list-style: none;
+            padding: 0;
+            margin: 20px 0;
+        }
+        .message-item {
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            display: flex;
+            align-items: center;
+        }
+        .message-item a {
+            text-decoration: none;
+            color: #333;
+            display: flex;
+            align-items: center;
+            width: 100%;
+        }
+        .message-item a:hover {
+            background-color: #e6f7ff;
+            border-color: #b3d9ff;
+            cursor: pointer;
+        }
+        .message-item .avatar {
+            width: 50px;
+            height: 50px;
+            background-color: #007bff;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2em;
+            font-weight: bold;
+            margin-right: 15px;
+        }
+        .message-item .content {
+            flex-grow: 1;
+        }
+        .message-item .content h3 {
+            margin: 0 0 5px 0;
+            font-size: 1.1em;
+            color: #007bff;
+        }
+        .message-item .content p {
+            margin: 0;
+            font-size: 0.9em;
+            color: #555;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis; /* Uzun mesajları kısaltır */
+        }
+        .message-item .unread-badge {
+            background-color: red;
+            color: white;
+            border-radius: 50%;
+            padding: 5px 9px;
+            font-size: 0.8em;
+            margin-left: 10px;
+            min-width: 25px; /* Tek haneli sayılar için yuvarlaklık */
+            text-align: center;
+        }
+        .no-conversations {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            background-color: #f0f8ff;
+            border: 1px dashed #cceeff;
+            border-radius: 8px;
+        }
+    </style>
+
+    <h1>Mesajlar</h1>
+
+    {% if conversations %}
+        <ul class="message-list">
+            {% for conv in conversations %}
+                <li class="message-item">
+                    <a href="{{ url_for('sohbet', other_user_id=conv.other_user_id) }}">
+                        <div class="avatar">{{ conv.other_username[0]|upper }}</div>
+                        <div class="content">
+                            <h3>{{ conv.other_username }}</h3>
+                            <p>
+                                {% if conv.last_message_sender == 'Siz' %}
+                                    **Siz:** {{ conv.last_message }}
+                                {% else %}
+                                    {{ conv.last_message }}
+                                {% endif %}
+                            </p>
+                        </div>
+                        {% if conv.unread_count > 0 %}
+                            <span class="unread-badge">{{ conv.unread_count }}</span>
+                        {% endif %}
+                    </a>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p class="no-conversations">Henüz kimseyle bir mesajlaşmanız bulunmuyor.</p>
+        <p class="no-conversations">Kullanıcı profillerinden mesaj göndermeye başlayabilirsiniz.</p>
+    {% endif %}
+{% endblock %}

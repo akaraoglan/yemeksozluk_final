@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+
+{% block title %}Ayarlar - Şifre Değiştir{% endblock %}
+
+{% block content %}
+    <style>
+        /* Form stilleri */
+        form {
+            background-color: #f9f9f9;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            max-width: 500px;
+            margin: 20px auto;
+        }
+        form label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+        form input[type="password"] {
+            width: calc(100% - 22px); /* Padding'i hesaba kat */
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        form input[type="submit"] {
+            background-color: #28a745; /* Yeşil tonu */
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+        }
+        form input[type="submit"]:hover {
+            background-color: #218838;
+        }
+    </style>
+
+    <h1>Ayarlar - Şifre Değiştir</h1>
+
+    <form method="POST">
+        <label for="current_password">Mevcut Şifre:</label><br>
+        <input type="password" id="current_password" name="current_password" required><br><br>
+
+        <label for="new_password">Yeni Şifre:</label><br>
+        <input type="password" id="new_password" name="new_password" required><br><br>
+
+        <label for="confirm_password">Yeni Şifreyi Tekrar Girin:</label><br>
+        <input type="password" id="confirm_password" name="confirm_password" required><br><br>
+
+        <input type="submit" value="Şifreyi Değiştir">
+    </form>
+{% endblock %}

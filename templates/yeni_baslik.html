@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+
+{% block title %}Yeni Başlık Ekle - Yemek Sözlük{% endblock %}
+
+{% block content %}
+    <h1>Yeni Başlık Ekle</h1>
+    <form method="POST" action="{{ url_for('yeni_baslik') }}"> {# BURAYI DEĞİŞTİRDİK #}
+        <label for="baslik_adi">Başlık Adı:</label><br>
+        <input type="text" id="baslik_adi" name="baslik_adi" required value="{{ default_baslik_adi }}">
+        <br><br>
+        <input type="submit" value="Başlık Oluştur">
+    </form>
+{% endblock %}

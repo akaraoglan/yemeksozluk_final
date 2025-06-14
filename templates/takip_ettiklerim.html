@@ -1,0 +1,129 @@
+{% extends 'base.html' %}
+
+{% block title %}Takip Ettiklerim - Yemek Sözlük{% endblock %}
+
+{% block content %}
+    <style>
+        .entry-item {
+            border: 1px solid #e0e0e0;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 6px;
+            background-color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            min-height: 100px;
+        }
+        .entry-title { /* Yeni eklenen başlık stilini belirle */
+            font-size: 1.2em; /* Daha büyük font */
+            font-weight: bold;
+            margin-bottom: 10px; /* Başlık ile metin arasına boşluk */
+            color: #333;
+        }
+        .entry-title a {
+            text-decoration: none;
+            color: #333; /* Başlık link rengi */
+        }
+        .entry-title a:hover {
+            text-decoration: underline;
+        }
+        .entry-text {
+            margin-bottom: 30px;
+            /* Sağdaki bilgi bloğunun üzerine gelmemesi için padding ekleyelim */
+            padding-right: 150px; /* Yazar ve tarih bilgileri için yeterli boşluk */
+        }
+        .entry-info {
+            position: absolute;
+            bottom: 10px; /* Bilgi ve butonların aynı hizada olması için 10px */
+            right: 0px;
+            text-align: right;
+            font-size: 0.85em;
+            color: #777;
+            line-height: 1.4;
+        }
+        .entry-info p {
+            margin: 0;
+        }
+        .entry-info a {
+            color: #0056b3;
+            text-decoration: none;
+        }
+        .entry-info a:hover {
+            text-decoration: underline;
+        }
+
+        /* Eğer takip edilen entrylerde de beğeni butonu istiyorsanız, baslik_detay.html'deki
+           .entry-actions stilini ve HTML yapısını buraya da kopyalayıp,
+           Python kodunda da takip edilen entrylere liked_by_user bilgisi eklemeniz gerekir.
+           Şimdilik sadece düzgün görünüm için temel stilleri ekliyorum. */
+        .entry-actions { /* Eğer eklerseniz bu stiller kullanılacak */
+            position: absolute;
+            bottom: 10px;
+            left: 0;
+            display: flex;
+            gap: 10px;
+            font-size: 1.1em;
+        }
+        .entry-actions a {
+            color: #555;
+            text-decoration: none;
+            padding: 5px;
+            border-radius: 4px;
+            transition: background-color 0.2s ease;
+        }
+        .entry-actions a:hover {
+            background-color: #f0f0f0;
+        }
+        .entry-actions .liked i {
+            color: #dc3545;
+        }
+        .entry-actions .share-btn {
+            cursor: pointer;
+            color: #555;
+            padding: 5px;
+            border-radius: 4px;
+        }
+        .entry-actions .share-btn:hover {
+            background-color: #f0f0f0;
+        }
+    </style>
+
+    <h1>Takip Ettiklerim</h1>
+
+    {% if takip_edilen_entryler %}
+        <ul>
+            {% for entry in takip_edilen_entryler %}
+                <li class="entry-item">
+                    <div class="entry-title">
+                        <a href="{{ url_for('baslik_detay', baslik_id=entry.baslik_id) }}">{{ entry.baslik_adi }}</a>
+                    </div>
+                    <div class="entry-text">
+                        <p>{{ entry.entry_metni }}</p>
+                    </div>
+                    {# Beğeni/Paylaş butonlarını burada göstermek isterseniz, aşağıdaki div'i ve içindeki kodu aktif edin #}
+                    {# VE yemeksozluk.py'deki takip_ettiklerim rotasına liked_by_user bilgisini ekleyin #}
+                    {# <div class="entry-actions">
+                        {% if is_logged_in %}
+                            {% if entry.liked_by_user %}
+                                <a href="{{ url_for('entry_begenmekten_vazgec', entry_id=entry.id) }}" class="liked" title="Beğeniyi Kaldır"><i class="fas fa-heart"></i></a>
+                            {% else %}
+                                <a href="{{ url_for('entry_begen', entry_id=entry.id) }}" title="Beğen"><i class="far fa-heart"></i></a>
+                            {% endif %}
+                        {% else %}
+                            <span style="color: #ccc; cursor: default;" title="Beğenmek için giriş yapın"><i class="far fa-heart"></i></span>
+                        {% endif %}
+                        <span class="share-btn" title="Paylaş"><i class="fas fa-share-alt"></i></span>
+                    </div> #}
+                    <div class="entry-info">
+                        <p>Yazar: <a href="{{ url_for('profil', username=entry.username) }}">{{ entry.username }}</a></p>
+                        <p>Tarih: {{ entry.tarih }}</p>
+                    </div>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>Henüz takip ettiğiniz kullanıcıların bir entry'si bulunmuyor veya hiç kimseyi takip etmiyorsunuz.</p>
+        <p>Diğer kullanıcıların profillerini ziyaret ederek onları takip edebilirsiniz.</p>
+    {% endif %}
+{% endblock %}

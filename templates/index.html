@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+
+{% block title %}Ana Sayfa - Yemek Sözlük{% endblock %}
+
+{% block content %}
+    <style>
+        .home-sections {
+            display: flex; /* İçindeki öğeleri esnek kutu olarak yan yana diz */
+            gap: 20px;     /* Öğeler arasına 20 piksel boşluk bırak */
+            flex-wrap: wrap; /* Küçük ekranlarda alt alta geçmelerini sağla */
+        }
+        .section-column {
+            flex: 1; /* Mevcut alanı eşit olarak paylaşmalarını sağla */
+            min-width: 300px; /* Çok daralmalarını engelle */
+            background-color: #f9f9f9;
+            padding: 15px;
+            border-radius: 5px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .section-column ul {
+            list-style: none;
+            padding: 0;
+        }
+        .section-column ul li {
+            margin-bottom: 8px;
+        }
+        .section-column ul li a {
+            text-decoration: none;
+            color: #007bff;
+            font-weight: normal;
+        }
+        .section-column ul li a:hover {
+            text-decoration: underline;
+        }
+    </style>
+
+    <div class="home-sections">
+        <div class="section-column">
+            <h2>Gündem</h2>
+            {% if gundem %}
+                <ul>
+                    {% for baslik in gundem %}
+                        <li>
+                            <a href="{{ url_for('baslik_detay', baslik_id=baslik.id) }}">{{ baslik.baslik_adi }}</a> 
+                            <small>({{ baslik.entry_sayisi }} entry)</small>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p>Henüz gündemde başlık bulunmuyor.</p>
+            {% endif %}
+        </div>
+
+        <div class="section-column">
+            <h2>Son Eklenen Entryler</h2>
+            {% if son %}
+                <ul>
+                    {% for baslik in son %}
+                        <li><a href="{{ url_for('baslik_detay', baslik_id=baslik.id) }}">{{ baslik.baslik_adi }}</a></li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p>Henüz son entry bulunmuyor.</p>
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}

@@ -1,0 +1,210 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ baslik.baslik_adi }} - Yemek Sözlük{% endblock %}
+
+{% block content %}
+    <style>
+        /* Entry stilini güncelliyoruz */
+        .entry-item {
+            margin-bottom: 15px; /* Entryler arasında boşluk bırakmak için */
+            padding: 10px 0; /* Metin için hafif bir iç boşluk */
+            position: relative; /* İçindeki absolute elemanlar için referans noktası */
+            min-height: 100px; /* Buton ve bilgilerin sığması için minimum yükseklik */
+            border-bottom: 1px solid #eee; /* Entryler arasına ince çizgi */
+        }
+        .entry-item:last-child {
+            border-bottom: none; /* Son entry'nin altında çizgi olmasın */
+        }
+        .entry-text {
+            margin-bottom: 30px; /* Bilgi ve butonlar için altta boşluk bırak */
+            /* Sağdaki bilgi bloğunun üzerine gelmemesi için padding ekleyelim */
+            padding-right: 150px; /* Yazar ve tarih bilgileri için yeterli boşluk */
+        }
+        .entry-info {
+            position: absolute;
+            bottom: 10px; /* Alt kenardan boşluk */
+            right: 0px; /* Sağ kenardan boşluk */
+            text-align: right;
+            font-size: 0.8em; /* Daha küçük font */
+            color: #777;
+            line-height: 1.3;
+        }
+        .entry-info p {
+            margin: 0;
+        }
+        .entry-info a {
+            color: #0056b3;
+            text-decoration: none;
+        }
+        .entry-info a:hover {
+            text-decoration: underline;
+        }
+
+        /* Beğeni ve Paylaşma Butonları */
+        .entry-actions {
+            position: absolute;
+            bottom: 10px;
+            left: 0; /* Sol alt köşeye konumlandır */
+            display: flex;
+            gap: 10px;
+            font-size: 1.1em;
+        }
+        .entry-actions a {
+            color: #555;
+            text-decoration: none;
+            padding: 5px;
+            border-radius: 4px;
+            transition: background-color 0.2s ease;
+        }
+        .entry-actions a:hover {
+            background-color: #f0f0f0;
+        }
+        .entry-actions .liked i {
+            color: #dc3545; /* Beğenilen kalp için kırmızı renk */
+        }
+        .entry-actions .share-btn {
+            cursor: pointer;
+            color: #555; /* Paylaş ikonunun rengi */
+            padding: 5px; /* Beğeni butonuyla aynı padding */
+            border-radius: 4px; /* Beğeni butonuyla aynı border-radius */
+        }
+         .entry-actions .share-btn:hover {
+            background-color: #f0f0f0; /* Hover efekti */
+        }
+
+        /* Pagination stilleri (öncekiyle aynı) */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 20px;
+            margin-bottom: 20px;
+            list-style: none;
+            padding: 0;
+            user-select: none;
+        }
+        .pagination li {
+            margin: 0 3px;
+        }
+        .pagination li a, .pagination li span {
+            display: block;
+            padding: 6px 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            text-decoration: none;
+            color: #007bff;
+            background-color: #fff;
+            font-size: 0.9em;
+        }
+        .pagination li a:hover {
+            background-color: #f0f0f0;
+        }
+        .pagination li.active a, .pagination li.active span {
+            background-color: #007bff;
+            color: white;
+            border-color: #007bff;
+            cursor: default;
+        }
+        .pagination li.disabled a {
+            color: #ccc;
+            cursor: not-allowed;
+            background-color: #f8f8f8;
+        }
+
+        .baslik-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .baslik-header h1 {
+            margin: 0;
+        }
+    </style>
+
+    <div class="baslik-header">
+        <h1>{{ baslik.baslik_adi }}</h1>
+        {# Pagination Navigasyonu - Başlığın sağ üstünde #}
+        {% if total_pages > 1 %}
+            <ul class="pagination">
+                {# Önceki Sayfa #}
+                <li class="{% if current_page == 1 %}disabled{% endif %}">
+                    <a href="{{ url_for('baslik_detay', baslik_id=baslik_id, page=current_page - 1) }}">&laquo;</a>
+                </li>
+
+                {# Sayfa Numaraları #}
+                {% for p in range(1, total_pages + 1) %}
+                    <li class="{% if p == current_page %}active{% endif %}">
+                        <a href="{{ url_for('baslik_detay', baslik_id=baslik_id, page=p) }}">{{ p }}</a>
+                    </li>
+                {% endfor %}
+
+                {# Sonraki Sayfa #}
+                <li class="{% if current_page == total_pages or total_pages == 0 %}disabled{% endif %}">
+                    <a href="{{ url_for('baslik_detay', baslik_id=baslik_id, page=current_page + 1) }}">&raquo;</a>
+                </li>
+            </ul>
+        {% endif %}
+    </div>
+
+    {% if is_logged_in %}
+        <p><a href="{{ url_for('yeni_entry', baslik_id=baslik.id) }}">Bu başlığa yeni entry ekle</a></p>
+    {% else %}
+        <p>Entry eklemek için <a href="{{ url_for('login') }}">giriş yapmalısınız</a>.</p>
+    {% endif %}
+
+    <h3>Entryler</h3>
+    {% if entryler %}
+        <ul>
+            {% for entry in entryler %}
+                <li class="entry-item">
+                    <div class="entry-text">
+                        <p>{{ entry.entry_metni }}</p>
+                    </div>
+                    <div class="entry-actions">
+                        {% if is_logged_in %}
+                            {% if entry.liked_by_user %}
+                                <a href="{{ url_for('entry_begenmekten_vazgec', entry_id=entry.id) }}" class="liked" title="Beğeniyi Kaldır"><i class="fas fa-heart"></i></a>
+                            {% else %}
+                                <a href="{{ url_for('entry_begen', entry_id=entry.id) }}" title="Beğen"><i class="far fa-heart"></i></a>
+                            {% endif %}
+                        {% else %}
+                            {# Giriş yapmamış kullanıcılar için sadece ikon gösterebiliriz, tıklanamaz #}
+                            <span style="color: #ccc; cursor: default;" title="Beğenmek için giriş yapın"><i class="far fa-heart"></i></span>
+                        {% endif %}
+                        <span class="share-btn" title="Paylaş"><i class="fas fa-share-alt"></i></span> {# Paylaş butonu (şimdilik işlevsiz) #}
+                    </div>
+                    <div class="entry-info">
+                        <p>Yazar: <a href="{{ url_for('profil', username=entry.username) }}">{{ entry.username }}</a></p>
+                        <p>Tarih: {{ entry.tarih }}</p>
+                    </div>
+                </li>
+            {% endfor %}
+        </ul>
+
+        {# Pagination Navigasyonu - Entry'lerin altında #}
+        {% if total_pages > 1 %}
+            <ul class="pagination">
+                {# Önceki Sayfa #}
+                <li class="{% if current_page == 1 %}disabled{% endif %}">
+                    <a href="{{ url_for('baslik_detay', baslik_id=baslik_id, page=current_page - 1) }}">&laquo;</a>
+                </li>
+
+                {# Sayfa Numaraları #}
+                {% for p in range(1, total_pages + 1) %}
+                    <li class="{% if p == current_page %}active{% endif %}">
+                        <a href="{{ url_for('baslik_detay', baslik_id=baslik_id, page=p) }}">{{ p }}</a>
+                    </li>
+                {% endfor %}
+
+                {# Sonraki Sayfa #}
+                <li class="{% if current_page == total_pages or total_pages == 0 %}disabled{% endif %}">
+                    <a href="{{ url_for('baslik_detay', baslik_id=baslik_id, page=current_page + 1) }}">&raquo;</a>
+                </li>
+            </ul>
+        {% endif %}
+
+    {% else %}
+        <p>Bu başlığa henüz hiç entry girilmemiş.</p>
+    {% endif %}
+{% endblock %}

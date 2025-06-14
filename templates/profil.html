@@ -1,0 +1,213 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ user.username }} - Profil{% endblock %}
+
+{% block content %}
+    <style>
+        /* Profil sayfasındaki genel stiller */
+        .profile-header {
+            margin-bottom: 20px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 15px;
+        }
+        .profile-header h1 {
+            margin-bottom: 5px;
+        }
+        .profile-bio {
+            margin-top: 10px;
+            font-style: italic;
+            color: #555;
+        }
+        .profile-actions {
+            margin-top: 20px;
+            margin-bottom: 30px;
+            display: flex; /* Butonların yan yana ve esnek olmasını sağlar */
+            gap: 10px; /* Butonlar arasında boşluk */
+            flex-wrap: wrap; /* Küçük ekranlarda alt alta gelmelerini sağlar */
+        }
+        .profile-actions .btn {
+            display: inline-block;
+            padding: 8px 15px;
+            background-color: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            white-space: nowrap; /* Buton içeriği tek satırda kalsın */
+        }
+        .profile-actions .btn:hover {
+            background-color: #0056b3;
+        }
+
+        /* Takip Et/Takipten Çık butonları için özel renk */
+        .profile-actions .follow-btn {
+            background-color: #28a745; /* Yeşil */
+        }
+        .profile-actions .follow-btn:hover {
+            background-color: #218838;
+        }
+        .profile-actions .unfollow-btn {
+            background-color: #dc3545; /* Kırmızı */
+        }
+        .profile-actions .unfollow-btn:hover {
+            background-color: #c82333;
+        }
+        .profile-actions .message-btn {
+            background-color: #6c757d; /* Gri */
+        }
+        .profile-actions .message-btn:hover {
+            background-color: #5a6268;
+        }
+
+
+        /* Entry stilini düzeltiyoruz */
+        .entry-item {
+            margin-bottom: 15px; /* Entryler arasında boşluk bırakmak için */
+            padding: 10px 0; /* Metin için hafif bir iç boşluk */
+            position: relative; /* İçindeki absolute elemanlar için referans noktası */
+            min-height: 100px; /* Buton ve bilgilerin sığması için minimum yükseklik */
+            border-bottom: 1px solid #eee; /* Entryler arasına ince çizgi */
+        }
+        .entry-item:last-child {
+            border-bottom: none; /* Son entry'nin altında çizgi olmasın */
+        }
+        .entry-text {
+            margin-bottom: 30px; /* Bilgi ve butonlar için altta boşluk bırak */
+            /* Sağdaki bilgi bloğunun üzerine gelmemesi için padding ekleyelim */
+            padding-right: 150px; /* Yazar ve tarih bilgileri için yeterli boşluk */
+        }
+        .entry-info {
+            position: absolute;
+            bottom: 10px; /* Alt kenardan boşluk */
+            right: 0px; /* Sağ kenardan boşluk */
+            text-align: right;
+            font-size: 0.8em; /* Daha küçük font */
+            color: #777;
+            line-height: 1.3;
+        }
+        .entry-info p {
+            margin: 0;
+            line-height: 1.4;
+        }
+        .entry-info a {
+            color: #007bff;
+            text-decoration: none;
+        }
+        .entry-info a:hover {
+            text-decoration: underline;
+        }
+        /* Beğeni ve Paylaş butonları */
+        .entry-actions {
+            position: absolute;
+            bottom: 10px;
+            left: 0;
+            display: flex;
+            gap: 10px;
+        }
+        .entry-actions a, .entry-actions span {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 30px;
+            height: 30px;
+            border: 1px solid #ddd;
+            border-radius: 50%;
+            text-decoration: none;
+            color: #555;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .entry-actions a:hover, .entry-actions span:hover {
+            background-color: #f0f0f0;
+        }
+        .entry-actions .liked {
+            color: #dc3545; /* Beğenilmişse kalp kırmızı */
+        }
+        .entry-actions .liked:hover {
+            background-color: #f8d7da; /* Kırmızıya yakın bir hover */
+        }
+
+        h2 {
+            margin-top: 40px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+
+        .no-entries-message {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f0f8ff;
+            border: 1px dashed #cceeff;
+            border-radius: 8px;
+            text-align: center;
+            color: #666;
+        }
+        .no-entries-message a {
+            color: #007bff;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .no-entries-message a:hover {
+            text-decoration: underline;
+        }
+
+    </style>
+
+    <div class="profile-header">
+        <h1>{{ user.username }}</h1>
+        {% if user.bio %}
+            <p class="profile-bio">{{ user.bio }}</p>
+        {% endif %}
+        <p>Kayıt Tarihi: {{ user.kayit_tarihi }}</p>
+    </div>
+
+    <div class="profile-actions">
+        {% if is_logged_in and session.user_id != user.id %}
+            {% if is_following %}
+                <a href="{{ url_for('takipten_cik', user_id=user.id) }}" class="btn unfollow-btn">Takipten Çık</a>
+            {% else %}
+                <a href="{{ url_for('takip_et', user_id=user.id) }}" class="btn follow-btn">Takip Et</a>
+            {% endif %}
+            {# Mesaj Gönder Butonu (YENİ EKLENDİ) #}
+            <a href="{{ url_for('sohbet', other_user_id=user.id) }}" class="btn message-btn">Mesaj Gönder</a>
+        {% elif is_logged_in and session.user_id == user.id %}
+            <a href="{{ url_for('profil_duzenle') }}" class="btn">Profili Düzenle</a>
+        {% endif %}
+    </div>
+
+    <h2>Son Entryleri</h2>
+    {% if entryler %}
+        <ul>
+            {% for entry in entryler %}
+                <li class="entry-item" id="entry-{{ entry.id }}">
+                    <div class="entry-text">
+                        <p>{{ entry.entry_metni }}</p>
+                    </div>
+                    <div class="entry-actions">
+                        {# Beğeni butonu #}
+                        {% if is_logged_in %}
+                            {% if entry.liked_by_user %}
+                                <a href="{{ url_for('entry_begenmekten_vazgec', entry_id=entry.id) }}" class="liked" title="Beğeniyi Kaldır"><i class="fas fa-heart"></i></a>
+                            {% else %}
+                                <a href="{{ url_for('entry_begen', entry_id=entry.id) }}" title="Beğen"><i class="far fa-heart"></i></a>
+                            {% endif %}
+                        {% else %}
+                            <span style="color: #ccc; cursor: default;" title="Beğenmek için giriş yapın"><i class="far fa-heart"></i></span>
+                        {% endif %}
+                        <span class="share-btn" title="Paylaş"><i class="fas fa-share-alt"></i></span>
+                    </div>
+                    <div class="entry-info">
+                        <p>Yazar: <a href="{{ url_for('profil', username=entry.username) }}">{{ entry.username }}</a></p>
+                        <p>Tarih: {{ entry.tarih }}</p>
+                        <p>Başlık: <a href="{{ url_for('baslik_detay', baslik_id=entry.baslik_id) }}">{{ entry.baslik_adi }}</a></p>
+                    </div>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        {% if is_logged_in and session.username == user.username %}
+            <p class="no-entries-message">Henüz bir entry'niz bulunmuyor. Yeni bir <a href="{{ url_for('yeni_baslik') }}">başlık</a> açarak veya mevcut başlıklara <a href="{{ url_for('index') }}">entry</a> girerek başlayabilirsiniz.</p>
+        {% else %}
+            <p class="no-entries-message">Bu kullanıcının henüz bir entry'si bulunmuyor.</p>
+        {% endif %}
+    {% endif %}
+{% endblock %}

@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Yemek Sözlük{% endblock %}</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+        body { font-family: sans-serif; margin: 20px; background-color: #f4f4f4; color: #333; }
+        .container { max-width: 900px; margin: auto; background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        nav ul { list-style: none; padding: 0; margin: 0; display: flex; align-items: center; }
+        nav ul li { margin-left: 20px; position: relative; }
+        nav ul li a { text-decoration: none; color: #007bff; font-weight: bold; }
+        nav ul li a:hover { text-decoration: underline; }
+        .flash-message { padding: 10px; margin-bottom: 15px; border-radius: 5px; }
+        .flash-message.error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .flash-message.success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .flash-message.info { background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        .flash-message.warning { background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
+        
+        .search-box {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .search-box form {
+            display: inline-block;
+            width: 100%;
+            max-width: 600px;
+        }
+        .search-box input[type="text"] {
+            width: calc(100% - 90px);
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px 0 0 5px;
+            box-sizing: border-box;
+        }
+        .search-box input[type="submit"] {
+            padding: 10px 15px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 0 5px 5px 0;
+            cursor: pointer;
+            font-size: 1em;
+            vertical-align: top;
+        }
+        .search-box input[type="submit"]:hover {
+            background-color: #218838;
+        }
+
+        /* Bildirim ve Mesaj ikonu stilleri */
+        .notification-icon, .message-icon {
+            position: relative;
+            margin-left: 20px;
+            cursor: pointer;
+            color: #007bff;
+            font-weight: bold;
+        }
+        .notification-icon .badge, .message-icon .badge {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background-color: red;
+            color: white;
+            border-radius: 50%;
+            padding: 2px 6px;
+            font-size: 0.75em;
+            line-height: 1;
+            min-width: 16px; /* Sayı tek basamaklı olsa bile yuvarlak dursun */
+            text-align: center;
+        }
+        
+        /* Dropdown genel stilleri - şimdilik sadece link var, dropdown kaldırıldı */
+        /* .notification-dropdown, .message-dropdown { ... } */
+        /* .notification-dropdown.active, .message-dropdown.active { ... } */
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><a href="/" style="text-decoration: none; color: #333;">Yemek Sözlük</a></h1>
+            <nav>
+                <ul>
+                    {% if is_logged_in %}
+                        <li>Merhaba, <a href="{{ url_for('profil', username=session.username) }}">{{ session.username }}</a>!</li>
+                        <li><a href="{{ url_for('takip_ettiklerim') }}">Takip Ettiklerim</a></li>
+                        <li><a href="{{ url_for('begenilenler') }}">Beğenilenler</a></li>
+                        
+                        {# Mesaj ikonu ve sayısı (YENİ EKLENDİ) #}
+                        <li class="message-icon">
+                            <a href="{{ url_for('mesajlar') }}" title="Mesajlar">
+                                <i class="fas fa-envelope"></i>
+                                {% if g.unread_messages_count > 0 %}
+                                    <span class="badge">{{ g.unread_messages_count }}</span>
+                                {% endif %}
+                            </a>
+                        </li>
+
+                        {# Bildirim ikonu ve sayısı #}
+                        <li class="notification-icon">
+                            <a href="{{ url_for('bildirimler') }}" title="Bildirimler">
+                                <i class="fas fa-bell"></i>
+                                {% if g.unread_notifications_count > 0 %}
+                                    <span class="badge">{{ g.unread_notifications_count }}</span>
+                                {% endif %}
+                            </a>
+                        </li>
+                        
+                        <li><a href="{{ url_for('ayarlar') }}">Ayarlar</a></li>
+                        <li><a href="{{ url_for('logout') }}">Çıkış Yap</a></li>
+                    {% else %}
+                        <li><a href="{{ url_for('register') }}">Kayıt Ol</a></li>
+                        <li><a href="{{ url_for('login') }}">Giriş Yap</a></li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </header>
+
+        <div class="search-box">
+            <form action="{{ url_for('arama') }}" method="POST">
+                <input type="text" name="arama_terimi" placeholder="Başlık ara veya yeni başlık aç..." value="{{ default_baslik_adi | default('') }}">
+                <input type="submit" value="Ara / Aç">
+            </form>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="flash-message {{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <main>
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+</body>
+</html>

@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+
+{% block title %}Yeni Entry Ekle: {{ baslik.baslik_adi }} - Yemek Sözlük{% endblock %}
+
+{% block content %}
+    <h1>Yeni Entry Ekle: {{ baslik.baslik_adi }}</h1>
+    <form method="POST">
+        <label for="entry_metni">Entry Metni:</label><br>
+        <textarea id="entry_metni" name="entry_metni" rows="10" cols="60" required></textarea><br><br>
+        <input type="submit" value="Entry Ekle">
+    </form>
+{% endblock %}

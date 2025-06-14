@@ -1,0 +1,93 @@
+{% extends 'base.html' %}
+
+{% block title %}Bildirimler - Yemek Sözlük{% endblock %}
+
+{% block content %}
+    <style>
+        .notification-list {
+            list-style: none;
+            padding: 0;
+            margin: 20px 0;
+        }
+        .notification-item {
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            display: flex;
+            align-items: flex-start; /* İçeriğin üstten başlamasını sağlar */
+        }
+        .notification-item.read {
+            background-color: #f1f1f1;
+            color: #777;
+        }
+        .notification-item .icon {
+            font-size: 1.5em;
+            margin-right: 15px;
+            color: #007bff;
+        }
+        .notification-item .content {
+            flex-grow: 1; /* Geri kalan alanı doldurur */
+        }
+        .notification-item .content p {
+            margin: 0;
+            line-height: 1.5;
+        }
+        .notification-item .content a {
+            color: #007bff;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .notification-item .content a:hover {
+            text-decoration: underline;
+        }
+        .notification-item .timestamp {
+            font-size: 0.8em;
+            color: #999;
+            margin-top: 5px;
+            display: block; /* Tarihin ayrı bir satırda olmasını sağlar */
+        }
+        .no-notifications {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            background-color: #f0f8ff;
+            border: 1px dashed #cceeff;
+            border-radius: 8px;
+        }
+    </style>
+
+    <h1>Bildirimler</h1>
+
+    {% if notifications %}
+        <ul class="notification-list">
+            {% for notification in notifications %}
+                <li class="notification-item {% if notification.is_read == 1 %}read{% else %}unread{% endif %}">
+                    <div class="icon">
+                        {% if notification.type == 'like' %}
+                            <i class="fas fa-heart"></i>
+                        {% elif notification.type == 'follow' %}
+                            <i class="fas fa-user-plus"></i>
+                        {% else %}
+                            <i class="fas fa-info-circle"></i> {# Varsayılan ikon #}
+                        {% endif %}
+                    </div>
+                    <div class="content">
+                        <p>
+                            {% if notification.link %}
+                                <a href="{{ notification.link }}">{{ notification.content }}</a>
+                            {% else %}
+                                {{ notification.content }}
+                            {% endif %}
+                            <span class="timestamp">{{ notification.timestamp }}</span>
+                        </p>
+                    </div>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p class="no-notifications">Henüz yeni bir bildiriminiz bulunmuyor.</p>
+    {% endif %}
+{% endblock %}
