@@ -179,8 +179,8 @@
             <div class="search-container">
                 <form action="{{ url_for('arama') }}" method="POST" id="searchForm">
                     <input type="text" name="arama_terimi" id="searchInput" placeholder="Başlık ara veya yeni başlık aç..." value="{{ default_baslik_adi | default('') }}" autocomplete="off">
-                    <input type="submit" value="Ara / Aç">
-                </form>
+                <input type="submit" value="Ara / Aç">
+            </form>
                 <div id="searchResults" class="search-results" style="display: none;"></div>
             </div>
         </div>

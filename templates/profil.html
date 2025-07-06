@@ -153,11 +153,20 @@
     </style>
 
     <div class="profile-header">
-        <h1>{{ user.username }}</h1>
+        <h1>
+            {{ user.username }}
+            {% if user.is_banned %}
+                <span style="color: #dc3545; font-size: 0.8em; font-weight: normal;">(sonsuzluğa uğurlandı)</span>
+            {% endif %}
+        </h1>
         {% if user.bio %}
             <p class="profile-bio">{{ user.bio }}</p>
         {% endif %}
         <p>Kayıt Tarihi: {{ user.kayit_tarihi }}</p>
+        <div style="margin-top: 10px; display: flex; gap: 20px; font-size: 0.9em; color: #666;">
+            <span><strong>{{ follower_count }}</strong> takipçi</span>
+            <span><strong>{{ following_count }}</strong> takip edilen</span>
+        </div>
     </div>
 
     <div class="profile-actions">
@@ -183,7 +192,7 @@
                         <div class="entry-header" style="margin-bottom: 10px; font-weight: bold; color: #007bff;">
                             <a href="{{ url_for('baslik_detay', baslik_id=entry.baslik_id) }}" style="text-decoration: none; color: inherit;">{{ entry.baslik_adi }}</a>
                         </div>
-                        <p>{{ entry.entry_metni }}</p>
+                        <p>{{ entry.entry_metni|safe }}</p>
                     </div>
                     <div class="entry-actions">
                         {# Beğeni butonu #}

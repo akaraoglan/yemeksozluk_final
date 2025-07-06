@@ -20,7 +20,7 @@
         @media (max-width: 768px) {
             .home-sections {
                 grid-template-columns: 1fr; /* Mobilde tek sütun */
-            }
+        }
         }
         
         .section-column {
@@ -86,6 +86,32 @@
             text-align: center;
         }
         
+        .recent-entries-container {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            padding: 10px;
+        }
+        
+        .recent-entries-container::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .recent-entries-container::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+        
+        .recent-entries-container::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 4px;
+        }
+        
+        .recent-entries-container::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+        
         .recent-entry {
             padding: 10px 0;
             border-bottom: 1px solid #f0f0f0;
@@ -105,6 +131,38 @@
         .recent-entry a:hover {
             color: #007bff;
             text-decoration: underline;
+        }
+        
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 15px;
+            gap: 5px;
+        }
+        
+        .pagination a, .pagination span {
+            padding: 8px 12px;
+            text-decoration: none;
+            border: 1px solid #ddd;
+            color: #007bff;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+        
+        .pagination a:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .pagination .current {
+            background-color: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+        
+        .pagination .disabled {
+            color: #6c757d;
+            cursor: not-allowed;
         }
         
         .stats-section {
@@ -134,52 +192,88 @@
             color: #666;
             font-size: 0.9em;
         }
+        
+        /* Okunan başlıklar için stil */
+        .entry-item.read {
+            opacity: 0.6;
+        }
+        
+        .entry-item.read .entry-title a {
+            color: #6c757d;
+        }
+        
+        .read-indicator {
+            background-color: #28a745;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 0.7em;
+            font-weight: bold;
+            margin-left: 8px;
+        }
     </style>
 
     <div class="home-container">
         <!-- Ana İçerik -->
-        <div class="home-sections">
+    <div class="home-sections">
             <!-- Sol Taraf - Gündem -->
-            <div class="section-column">
+        <div class="section-column">
                 <div class="section-header">
                     <i class="fas fa-fire" style="color: #ff6b6b; margin-right: 8px;"></i>
                     Gündem
                 </div>
-                {% if gundem %}
+            {% if gundem %}
                     <ul class="entry-list">
-                        {% for baslik in gundem %}
-                            <li class="entry-item">
+                    {% for baslik in gundem %}
+                            <li class="entry-item {% if baslik.is_read %}read{% endif %}">
                                 <div class="entry-title">
-                                    <a href="{{ url_for('baslik_detay', baslik_id=baslik.id) }}">{{ baslik.baslik_adi }}</a>
+                            <a href="{{ url_for('baslik_detay', baslik_id=baslik.id) }}">{{ baslik.baslik_adi }}</a> 
+                                    {% if baslik.is_read %}
+                                        <span class="read-indicator">Okundu</span>
+                                    {% endif %}
                                 </div>
                                 <div class="entry-count">
                                     {{ baslik.entry_sayisi }}
                                 </div>
-                            </li>
-                        {% endfor %}
-                    </ul>
-                {% else %}
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
                     <p style="color: #666; text-align: center; padding: 20px;">Henüz gündemde başlık bulunmuyor.</p>
-                {% endif %}
-            </div>
+            {% endif %}
+        </div>
 
             <!-- Sağ Taraf - Son Eklenen Entryler -->
-            <div class="section-column">
+        <div class="section-column">
                 <div class="section-header">
                     <i class="fas fa-clock" style="color: #28a745; margin-right: 8px;"></i>
                     Son Eklenen Entryler
                 </div>
-                {% if son %}
-                    <div class="recent-entries">
+            {% if son %}
+                    <div class="recent-entries-container">
                         {% for baslik in son %}
-                            <div class="recent-entry">
+                            <div class="recent-entry {% if baslik.is_read %}read{% endif %}">
                                 <a href="{{ url_for('baslik_detay', baslik_id=baslik.id) }}">{{ baslik.baslik_adi }}</a>
+                                {% if baslik.is_read %}
+                                    <span class="read-indicator">Okundu</span>
+                                {% endif %}
                             </div>
                         {% endfor %}
                     </div>
-                {% else %}
+                    
+                    <!-- Sayfalama -->
+                    {% if son|length >= 20 %}
+                        <div class="pagination">
+                            <a href="#" onclick="changePage(1)" class="page-link">1</a>
+                            <a href="#" onclick="changePage(2)" class="page-link">2</a>
+                            <a href="#" onclick="changePage(3)" class="page-link">3</a>
+                            <span>...</span>
+                            <a href="#" onclick="changePage(10)" class="page-link">10</a>
+                        </div>
+                    {% endif %}
+            {% else %}
                     <p style="color: #666; text-align: center; padding: 20px;">Henüz son entry bulunmuyor.</p>
-                {% endif %}
+            {% endif %}
             </div>
         </div>
 
@@ -199,4 +293,12 @@
             </div>
         </div>
     </div>
+
+    <script>
+        function changePage(page) {
+            // Bu fonksiyon AJAX ile sayfa değiştirme için kullanılabilir
+            console.log('Sayfa değiştiriliyor:', page);
+            // Şimdilik sadece console'a yazdırıyor, gerçek implementasyon için AJAX gerekli
+        }
+    </script>
 {% endblock %}

@@ -3,35 +3,77 @@
 {% block title %}Giriş Yap - Yemek Sözlük{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <div class="row justify-content-center">
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-header">
-                    <h4>Giriş Yap</h4>
-                </div>
-                <div class="card-body">
-                    <form method="POST">
-                        <div class="form-group">
-                            <label for="username">Kullanıcı Adı:</label>
-                            <input type="text" class="form-control" id="username" name="username" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="password">Şifre:</label>
-                            <input type="password" class="form-control" id="password" name="password" required>
-                        </div>
-                        <div class="mt-3">
-                            <button type="submit" class="btn btn-primary">Giriş Yap</button>
-                            <a href="{{ url_for('register') }}" class="btn btn-secondary">Kayıt Ol</a>
-                        </div>
-                    </form>
-                    
-                    <div class="mt-3">
-                        <a href="{{ url_for('password_reset_request') }}" class="text-muted">Şifremi unuttum</a>
-                    </div>
-                </div>
-            </div>
-        </div>
+<style>
+.login-container {
+    max-width: 400px;
+    margin: 40px auto 0 auto;
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+    padding: 32px 28px 24px 28px;
+}
+.login-container h2 {
+    text-align: center;
+    margin-bottom: 24px;
+    color: #007bff;
+}
+.login-container label {
+    font-weight: 500;
+    margin-bottom: 6px;
+    display: block;
+}
+.login-container input[type="text"],
+.login-container input[type="password"] {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    margin-bottom: 16px;
+    font-size: 1em;
+    box-sizing: border-box;
+}
+.login-container button[type="submit"] {
+    width: 100%;
+    padding: 10px;
+    background: #28a745;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    font-size: 1.1em;
+    font-weight: bold;
+    cursor: pointer;
+    margin-bottom: 10px;
+    transition: background 0.2s;
+}
+.login-container button[type="submit"]:hover {
+    background: #218838;
+}
+.login-container .alt-links {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 10px;
+}
+.login-container .alt-links a {
+    color: #007bff;
+    text-decoration: none;
+    font-size: 0.98em;
+}
+.login-container .alt-links a:hover {
+    text-decoration: underline;
+}
+</style>
+<div class="login-container">
+    <h2>Giriş Yap</h2>
+    <form method="POST">
+        <label for="username">Kullanıcı Adı:</label>
+        <input type="text" id="username" name="username" required>
+        <label for="password">Şifre:</label>
+        <input type="password" id="password" name="password" required>
+        <button type="submit">Giriş Yap</button>
+    </form>
+    <div class="alt-links">
+        <a href="{{ url_for('register') }}">Kayıt Ol</a>
+        <a href="{{ url_for('password_reset_request') }}">Şifremi unuttum</a>
     </div>
 </div>
 {% endblock %}

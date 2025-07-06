@@ -8,6 +8,8 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from contextlib import contextmanager
+import re
+import pytz
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'cokgizlibirkey'
@@ -18,6 +20,29 @@ app.config['MAIL_USERNAME'] = 'your-email@gmail.com'  # Gmail adresiniz
 app.config['MAIL_PASSWORD'] = 'your-app-password'     # Gmail uygulama şifresi
 DATABASE = 'yemeksozluk.db'
 ENTRIES_PER_PAGE = 10 # Her sayfada gösterilecek entry sayısı
+
+# Türkiye saat dilimi
+TURKEY_TZ = pytz.timezone('Europe/Istanbul')
+
+def format_tarih(tarih_str):
+    """Tarihi Türkiye saatine göre formatlar"""
+    try:
+        if isinstance(tarih_str, str):
+            # Hem 'YYYY-MM-DD HH:MM:SS' hem de 'YYYY-MM-DDTHH:MM:SS' destekle
+            tarih_str = tarih_str.replace('T', ' ')
+            if '.' in tarih_str:
+                tarih_str = tarih_str.split('.')[0]  # mikrosaniyeyi at
+            dt = datetime.strptime(tarih_str, '%Y-%m-%d %H:%M:%S')
+            # Saat dilimi yoksa Istanbul olarak ayarla
+            dt = TURKEY_TZ.localize(dt)
+        else:
+            dt = tarih_str
+            if dt.tzinfo is None:
+                dt = TURKEY_TZ.localize(dt)
+        # dd.mm.yyyy HH:MM
+        return dt.strftime('%d.%m.%Y %H:%M')
+    except Exception as e:
+        return str(tarih_str)
 
 @contextmanager
 def get_db_connection():
@@ -141,6 +166,17 @@ def init_db():
                 FOREIGN KEY (user_id) REFERENCES users(id)
             )
         ''')
+        # Read entries tablosu (YENİ - okunan entryler için)
+        conn.execute('''
+            CREATE TABLE IF NOT EXISTS read_basliklar (
+                user_id INTEGER NOT NULL,
+                baslik_id INTEGER NOT NULL,
+                read_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (user_id, baslik_id),
+                FOREIGN KEY (user_id) REFERENCES users(id),
+                FOREIGN KEY (baslik_id) REFERENCES basliklar(id)
+            )
+        ''')
         conn.commit()
 
 with app.app_context():
@@ -175,7 +211,7 @@ def before_request():
             # Okunmamış mesaj sayısı
             messages_count = conn.execute('SELECT COUNT(*) FROM messages WHERE receiver_id = ? AND is_read = 0', (user_id,)).fetchone()[0]
             g.unread_messages_count = messages_count
-            
+        
 
 @app.route('/')
 def index():
@@ -186,17 +222,43 @@ def index():
             LEFT JOIN entryler e ON b.id = e.baslik_id
             GROUP BY b.id
             ORDER BY entry_sayisi DESC
-            LIMIT 10
+            LIMIT 25
         ''').fetchall()
 
+        # Son eklenen başlıklar (eski hali)
         son = conn.execute('''
             SELECT b.id, b.baslik_adi
             FROM basliklar b
             JOIN entryler e ON b.id = e.baslik_id
             GROUP BY b.id, b.baslik_adi
             ORDER BY MAX(e.tarih) DESC
-            LIMIT 10
+            LIMIT 20
         ''').fetchall()
+        
+        # Başlıkların okundu durumunu kontrol et
+        if is_logged_in():
+            user_id = session['user_id']
+            
+            # Gündem başlıklarının okundu durumunu kontrol et
+            gundem_list = []
+            for baslik in gundem:
+                is_read = conn.execute('SELECT 1 FROM read_basliklar WHERE user_id = ? AND baslik_id = ?', 
+                                       (user_id, baslik['id'])).fetchone() is not None
+                baslik_dict = dict(baslik)
+                baslik_dict['is_read'] = is_read
+                gundem_list.append(baslik_dict)
+            
+            # Son eklenen başlıkların okundu durumunu kontrol et
+            son_list = []
+            for baslik in son:
+                is_read = conn.execute('SELECT 1 FROM read_basliklar WHERE user_id = ? AND baslik_id = ?', 
+                                       (user_id, baslik['id'])).fetchone() is not None
+                baslik_dict = dict(baslik)
+                baslik_dict['is_read'] = is_read
+                son_list.append(baslik_dict)
+        else:
+            gundem_list = [dict(baslik) for baslik in gundem]
+            son_list = [dict(baslik) for baslik in son]
         
         # İstatistikleri hesapla
         baslik_sayisi = conn.execute('SELECT COUNT(*) FROM basliklar').fetchone()[0]
@@ -209,7 +271,7 @@ def index():
             'kullanici_sayisi': kullanici_sayisi
         }
         
-    return render_template('index.html', gundem=gundem, son=son, stats=stats, is_logged_in=is_logged_in())
+    return render_template('index.html', gundem=gundem_list, son=son_list, stats=stats, is_logged_in=is_logged_in())
 
 @app.route('/baslik/<int:baslik_id>')
 @app.route('/baslik/<int:baslik_id>/<int:page>')
@@ -219,6 +281,12 @@ def baslik_detay(baslik_id, page=1):
         if baslik is None:
             flash('Başlık bulunamadı!', 'error')
             return redirect(url_for('index'))
+
+        # Başlık okunduğunda işaretle
+        if is_logged_in():
+            user_id = session['user_id']
+            conn.execute('INSERT OR IGNORE INTO read_basliklar (user_id, baslik_id) VALUES (?, ?)', 
+                         (user_id, baslik_id))
 
         total_entries_count = conn.execute('SELECT COUNT(id) FROM entryler WHERE baslik_id = ?', (baslik_id,)).fetchone()[0]
         total_pages = math.ceil(total_entries_count / ENTRIES_PER_PAGE)
@@ -247,6 +315,7 @@ def baslik_detay(baslik_id, page=1):
             for entry in entryler_data:
                 liked = conn.execute('SELECT 1 FROM likes WHERE user_id = ? AND entry_id = ?', 
                                      (user_id, entry['id'])).fetchone() is not None
+                
                 entry_dict = dict(entry) # Row objesini dict'e çevir
                 entry_dict['liked_by_user'] = liked
                 entry_list.append(entry_dict)
@@ -254,7 +323,11 @@ def baslik_detay(baslik_id, page=1):
             for entry in entryler_data:
                 entry_dict = dict(entry)
                 entry_dict['liked_by_user'] = False
+                entry_dict['is_read'] = False  # Giriş yapmamış kullanıcılar için
+                entry_dict['is_banned'] = entry['is_banned']
                 entry_list.append(entry_dict)
+
+        conn.commit()
 
     return render_template('baslik_detay.html', 
                            baslik=baslik, 
@@ -368,21 +441,21 @@ def login():
         with get_db_connection() as conn:
             user = conn.execute('SELECT * FROM users WHERE username = ?', (username,)).fetchone()
 
-        if user and user['password_hash'] == hash_password(password):
-            # Ban kontrolü
-            if user['is_banned']:
-                flash('Hesabınız askıya alınmıştır. Lütfen yönetici ile iletişime geçin.', 'error')
-                return render_template('login.html')
-            
-            session['logged_in'] = True
-            session['user_id'] = user['id']
-            session['username'] = user['username']
-            session['is_admin'] = user['is_admin']
-            session['is_moderator'] = user['is_moderator']
-            flash('Başarıyla giriş yaptınız!', 'success')
-            return redirect(url_for('index'))
-        else:
-            flash('Kullanıcı adı veya şifre hatalı.', 'error')
+            if user and user['password_hash'] == hash_password(password):
+                # Ban kontrolü
+                if user['is_banned']:
+                    flash('Hesabınız askıya alınmıştır. Lütfen yönetici ile iletişime geçin.', 'error')
+                    return render_template('login.html')
+                
+                session['logged_in'] = True
+                session['user_id'] = user['id']
+                session['username'] = user['username']
+                session['is_admin'] = user['is_admin']
+                session['is_moderator'] = user['is_moderator']
+                flash('Başarıyla giriş yaptınız!', 'success')
+                return redirect(url_for('index'))
+            else:
+                flash('Kullanıcı adı veya şifre hatalı.', 'error')
     return render_template('login.html')
 
 @app.route('/cikis_yap')
@@ -431,7 +504,7 @@ def yeni_baslik():
                     flash("Bu başlık zaten mevcut! Lütfen farklı bir başlık deneyin.", 'error')
                     return render_template('yeni_baslik.html', default_baslik_adi=baslik_adi)
 
-                # Başlığı oluştur
+                    # Başlığı oluştur
                 conn.execute('INSERT INTO basliklar (baslik_adi) VALUES (?)', (baslik_adi,))
                 conn.commit()
                 yeni_baslik_id = conn.execute('SELECT id FROM basliklar WHERE baslik_adi = ?', (baslik_adi,)).fetchone()[0]
@@ -466,6 +539,9 @@ def yeni_entry(baslik_id):
 
             # Büyük harfleri küçük harfe çevir
             entry_metni = entry_metni.lower()
+            
+            # Linkleri formatla
+            entry_metni = format_entry_text(entry_metni)
 
             conn.execute('INSERT INTO entryler (entry_metni, baslik_id, yazar_id) VALUES (?, ?, ?)', 
                          (entry_metni, baslik_id, yazar_id))
@@ -483,6 +559,12 @@ def profil(username):
             flash('Kullanıcı bulunamadı!', 'error')
             return redirect(url_for('index'))
         
+        # Takipçi sayısını hesapla
+        follower_count = conn.execute('SELECT COUNT(*) FROM follows WHERE followed_id = ?', (user['id'],)).fetchone()[0]
+        
+        # Takip edilen sayısını hesapla
+        following_count = conn.execute('SELECT COUNT(*) FROM follows WHERE follower_id = ?', (user['id'],)).fetchone()[0]
+        
         is_following = False
         if is_logged_in():
             # Kendi profili değilse takip durumunu kontrol et
@@ -494,7 +576,7 @@ def profil(username):
 
         # Kullanıcının entry'lerini çek
         entryler_data = conn.execute('''
-            SELECT e.id, e.entry_metni, e.tarih, e.yazar_id, b.baslik_adi, b.id as baslik_id, u.username
+            SELECT e.id, e.entry_metni, e.tarih, e.yazar_id, b.baslik_adi, b.id as baslik_id, u.username, u.is_banned
             FROM entryler e
             JOIN basliklar b ON e.baslik_id = b.id
             JOIN users u ON e.yazar_id = u.id
@@ -511,15 +593,20 @@ def profil(username):
                                      (current_user_id, entry['id'])).fetchone() is not None
                 entry_dict = dict(entry) # Row objesini dict'e çevir
                 entry_dict['liked_by_user'] = liked
+                entry_dict['is_read'] = True  # Artık okundu olarak işaretlendi
+                entry_dict['is_banned'] = entry['is_banned']
                 entry_list.append(entry_dict)
         else:
             for entry in entryler_data:
                 entry_dict = dict(entry)
                 entry_dict['liked_by_user'] = False
+                entry_dict['is_read'] = False  # Giriş yapmamış kullanıcılar için
+                entry_dict['is_banned'] = entry['is_banned']
                 entry_list.append(entry_dict)
 
     return render_template('profil.html', user=user, entryler=entry_list,
-                           is_logged_in=is_logged_in(), is_following=is_following)
+                           is_logged_in=is_logged_in(), is_following=is_following,
+                           follower_count=follower_count, following_count=following_count)
 
 @app.route('/profil_duzenle', methods=['GET', 'POST'])
 def profil_duzenle():
@@ -568,12 +655,12 @@ def takip_et(user_id):
         except sqlite3.IntegrityError:
             flash('Bu kullanıcıyı zaten takip ediyorsunuz.', 'info')
         
-    with get_db_connection() as conn_temp:
-        followed_username_row = conn_temp.execute('SELECT username FROM users WHERE id = ?', (user_id,)).fetchone()
-    if followed_username_row:
-        return redirect(url_for('profil', username=followed_username_row['username']))
-    else:
-        return redirect(url_for('index'))
+        with get_db_connection() as conn_temp:
+            followed_username_row = conn_temp.execute('SELECT username FROM users WHERE id = ?', (user_id,)).fetchone()
+            if followed_username_row:
+                return redirect(url_for('profil', username=followed_username_row['username']))
+            else:
+                return redirect(url_for('index'))
 
 @app.route('/takipten_cik/<int:user_id>')
 def takipten_cik(user_id):
@@ -596,12 +683,12 @@ def takipten_cik(user_id):
         finally:
             pass
 
-    with get_db_connection() as conn_temp:
-        unfollowed_username_row = conn_temp.execute('SELECT username FROM users WHERE id = ?', (user_id,)).fetchone()
-    if unfollowed_username_row:
-        return redirect(url_for('profil', username=unfollowed_username_row['username']))
-    else:
-        return redirect(url_for('index'))
+        with get_db_connection() as conn_temp:
+            unfollowed_username_row = conn_temp.execute('SELECT username FROM users WHERE id = ?', (user_id,)).fetchone()
+            if unfollowed_username_row:
+                return redirect(url_for('profil', username=unfollowed_username_row['username']))
+            else:
+                return redirect(url_for('index'))
 
 @app.route('/takip_ettiklerim')
 def takip_ettiklerim():
@@ -612,15 +699,15 @@ def takip_ettiklerim():
     user_id = session['user_id']
     with get_db_connection() as conn:
         takip_edilen_entryler_data = conn.execute('''
-            SELECT e.entry_metni, e.tarih, b.baslik_adi, b.id as baslik_id, u.username, e.id as entry_id, e.yazar_id
-            FROM entryler e
-            JOIN basliklar b ON e.baslik_id = b.id
-            JOIN users u ON e.yazar_id = u.id
-            WHERE e.yazar_id IN (SELECT followed_id FROM follows WHERE follower_id = ?)
-            ORDER BY e.tarih DESC
-            LIMIT 20
-        ''', (user_id,)).fetchall()
-        
+            SELECT e.entry_metni, e.tarih, b.baslik_adi, b.id as baslik_id, u.username, e.id as entry_id, e.yazar_id, u.is_banned
+        FROM entryler e
+        JOIN basliklar b ON e.baslik_id = b.id
+        JOIN users u ON e.yazar_id = u.id
+        WHERE e.yazar_id IN (SELECT followed_id FROM follows WHERE follower_id = ?)
+        ORDER BY e.tarih DESC
+        LIMIT 20
+    ''', (user_id,)).fetchall()
+    
         # Beğeni bilgilerini ekle
         entry_list = []
         for entry in takip_edilen_entryler_data:
@@ -628,6 +715,8 @@ def takip_ettiklerim():
                                  (user_id, entry['entry_id'])).fetchone() is not None
             entry_dict = dict(entry)
             entry_dict['liked_by_user'] = liked
+            entry_dict['is_read'] = True  # Artık okundu olarak işaretlendi
+            entry_dict['is_banned'] = entry['is_banned']
             entry_list.append(entry_dict)
     
     return render_template('takip_ettiklerim.html', takip_edilen_entryler=entry_list, is_logged_in=is_logged_in())
@@ -697,16 +786,24 @@ def begenilenler():
     user_id = session['user_id']
     with get_db_connection() as conn:
         begenilen_entryler = conn.execute('''
-            SELECT e.entry_metni, e.tarih, b.baslik_adi, b.id as baslik_id, u.username, e.id as entry_id, e.yazar_id
-            FROM likes l
-            JOIN entryler e ON l.entry_id = e.id
-            JOIN basliklar b ON e.baslik_id = b.id
-            JOIN users u ON e.yazar_id = u.id
-            WHERE l.user_id = ?
-            ORDER BY e.tarih DESC
-        ''', (user_id,)).fetchall()
+            SELECT e.entry_metni, e.tarih, b.baslik_adi, b.id as baslik_id, u.username, e.id as entry_id, e.yazar_id, u.is_banned
+        FROM likes l
+        JOIN entryler e ON l.entry_id = e.id
+        JOIN basliklar b ON e.baslik_id = b.id
+        JOIN users u ON e.yazar_id = u.id
+        WHERE l.user_id = ?
+        ORDER BY e.tarih DESC
+    ''', (user_id,)).fetchall()
 
-    return render_template('begenilenler.html', begenilen_entryler=begenilen_entryler, is_logged_in=is_logged_in())
+        # Tarihleri formatla ve entry metinlerini düzenle
+        formatted_entries = []
+        for entry in begenilen_entryler:
+            formatted_entry = dict(entry)
+            formatted_entry['tarih'] = format_tarih(entry['tarih'])
+            formatted_entry['entry_metni'] = format_entry_text(entry['entry_metni'])
+            formatted_entries.append(formatted_entry)
+
+    return render_template('begenilenler.html', begenilen_entryler=formatted_entries, is_logged_in=is_logged_in())
 
 # Ayarlar ve Şifre Değiştirme Rotası
 @app.route('/ayarlar', methods=['GET', 'POST'])
@@ -838,10 +935,15 @@ def sohbet(other_user_id):
         return redirect(url_for('mesajlar'))
 
     with get_db_connection() as conn:
-        other_user = conn.execute('SELECT id, username FROM users WHERE id = ?', (other_user_id,)).fetchone()
+        other_user = conn.execute('SELECT id, username, is_banned FROM users WHERE id = ?', (other_user_id,)).fetchone()
 
-        if not other_user:
-            flash('Mesaj göndermek istediğiniz kullanıcı bulunamadı.', 'error')
+    if not other_user:
+        flash('Mesaj göndermek istediğiniz kullanıcı bulunamadı.', 'error')
+        return redirect(url_for('mesajlar'))
+
+        # Banlanan kullanıcıya mesaj gönderilmesini engelle
+        if other_user['is_banned']:
+            flash('Bu kullanıcı banlanmıştır. Mesaj gönderemezsiniz.', 'error')
             return redirect(url_for('mesajlar'))
 
         entry_info = None
@@ -854,41 +956,41 @@ def sohbet(other_user_id):
                 WHERE e.id = ?
             ''', (entry_id,)).fetchone()
 
-        if request.method == 'POST':
-            message_text = request.form['message_text'].strip()
-            if not message_text:
-                flash('Mesaj boş olamaz!', 'error')
-                return redirect(url_for('sohbet', other_user_id=other_user_id, entry_id=entry_id) if entry_id else url_for('sohbet', other_user_id=other_user_id))
-            # Eğer entry_id varsa ilk mesajın başına entry bilgisini ekle
-            if entry_info and not conn.execute('''SELECT 1 FROM messages WHERE ((sender_id=? AND receiver_id=?) OR (sender_id=? AND receiver_id=?)) AND message_text LIKE ?''', (user_id, other_user_id, other_user_id, user_id, f'%Entry ID: {entry_info["id"]}%')).fetchone():
-                message_text = f"[Entry ID: {entry_info['id']}] {entry_info['baslik_adi']} başlığı: {entry_info['entry_metni']}\n---\n" + message_text
-            conn.execute('INSERT INTO messages (sender_id, receiver_id, message_text) VALUES (?, ?, ?)',
-                         (user_id, other_user_id, message_text))
-            conn.commit()
-
-            # Mesaj bildirimi ekle
-            add_notification(other_user_id, user_id, 'message', 
-                             f"{session['username']} size bir mesaj gönderdi.", 
-                             url_for('sohbet', other_user_id=user_id)) # Bildirime tıklayınca o sohbet sayfasına gider
-
-            flash('Mesajınız gönderildi.', 'success')
+    if request.method == 'POST':
+        message_text = request.form['message_text'].strip()
+        if not message_text:
+            flash('Mesaj boş olamaz!', 'error')
             return redirect(url_for('sohbet', other_user_id=other_user_id, entry_id=entry_id) if entry_id else url_for('sohbet', other_user_id=other_user_id))
-
-        # Gelen tüm mesajları ve gönderilen mesajları çek
-        messages = conn.execute('''
-            SELECT m.*, s.username as sender_username, r.username as receiver_username
-            FROM messages m
-            JOIN users s ON m.sender_id = s.id
-            JOIN users r ON m.receiver_id = r.id
-            WHERE (m.sender_id = ? AND m.receiver_id = ?) 
-               OR (m.sender_id = ? AND m.receiver_id = ?)
-            ORDER BY m.timestamp ASC
-        ''', (user_id, other_user_id, other_user_id, user_id)).fetchall()
-
-        # Gelen ve okunmamış mesajları okundu olarak işaretle
-        conn.execute('UPDATE messages SET is_read = 1 WHERE receiver_id = ? AND sender_id = ? AND is_read = 0',
-                     (user_id, other_user_id))
+        # Eğer entry_id varsa ilk mesajın başına entry bilgisini ekle
+        if entry_info and not conn.execute('''SELECT 1 FROM messages WHERE ((sender_id=? AND receiver_id=?) OR (sender_id=? AND receiver_id=?)) AND message_text LIKE ?''', (user_id, other_user_id, other_user_id, user_id, f'%Entry ID: {entry_info["id"]}%')).fetchone():
+            message_text = f"[Entry ID: {entry_info['id']}] {entry_info['baslik_adi']} başlığı: {entry_info['entry_metni']}\n---\n" + message_text
+        conn.execute('INSERT INTO messages (sender_id, receiver_id, message_text) VALUES (?, ?, ?)',
+                     (user_id, other_user_id, message_text))
         conn.commit()
+
+        # Mesaj bildirimi ekle
+        add_notification(other_user_id, user_id, 'message', 
+                         f"{session['username']} size bir mesaj gönderdi.", 
+                         url_for('sohbet', other_user_id=user_id)) # Bildirime tıklayınca o sohbet sayfasına gider
+
+        flash('Mesajınız gönderildi.', 'success')
+        return redirect(url_for('sohbet', other_user_id=other_user_id, entry_id=entry_id) if entry_id else url_for('sohbet', other_user_id=other_user_id))
+
+    # Gelen tüm mesajları ve gönderilen mesajları çek
+    messages = conn.execute('''
+        SELECT m.*, s.username as sender_username, r.username as receiver_username
+        FROM messages m
+        JOIN users s ON m.sender_id = s.id
+        JOIN users r ON m.receiver_id = r.id
+        WHERE (m.sender_id = ? AND m.receiver_id = ?) 
+           OR (m.sender_id = ? AND m.receiver_id = ?)
+        ORDER BY m.timestamp ASC
+    ''', (user_id, other_user_id, other_user_id, user_id)).fetchall()
+
+    # Gelen ve okunmamış mesajları okundu olarak işaretle
+    conn.execute('UPDATE messages SET is_read = 1 WHERE receiver_id = ? AND sender_id = ? AND is_read = 0',
+                 (user_id, other_user_id))
+    conn.commit()
 
     return render_template('sohbet.html', messages=messages, other_user=other_user, is_logged_in=is_logged_in(), entry_info=entry_info)
 
@@ -926,6 +1028,9 @@ def entry_duzenle(entry_id):
 
             # Büyük harfleri küçük harfe çevir
             yeni_entry_metni = yeni_entry_metni.lower()
+            
+            # Linkleri formatla
+            yeni_entry_metni = format_entry_text(yeni_entry_metni)
 
             conn.execute('UPDATE entryler SET entry_metni = ? WHERE id = ?', 
                          (yeni_entry_metni, entry_id))
@@ -1212,6 +1317,26 @@ def moderator_action(report_id):
 
     flash(f'İşlem başarıyla tamamlandı: {action_taken}', 'success')
     return redirect(url_for('moderator_panel'))
+
+def format_entry_text(text):
+    """Entry metnindeki linkleri kutucukta, düz metni ise sade gösterir"""
+    url_pattern = r'(https?://[^\s<>]+|www\.[^\s<>]+)'
+    parts = re.split(url_pattern, text)
+    result = ''
+    for part in parts:
+        if not part:
+            continue
+        if re.match(url_pattern, part):
+            url = part
+            if url.startswith('www.'):
+                url = 'http://' + url
+            display_url = url if len(url) <= 50 else url[:47] + '...'
+            result += f'<span class="entry-link-box"><a href="{url}" target="_blank" class="entry-link" style="display: inline-block; padding: 2px 6px; background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 4px; color: #007bff; text-decoration: none; margin: 2px 0; word-break: break-all;">{display_url}</a></span>'
+        else:
+            # Düz metinler kutusuz, sadece satır sonlarını <br> ile değiştir
+            clean = part.replace('\n', '<br>')
+            result += clean
+    return result
 
 if __name__ == '__main__':
     app.run(debug=True)
