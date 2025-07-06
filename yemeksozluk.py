@@ -421,9 +421,8 @@ def yeni_baslik():
             flash("Başlık adı boş olamaz!", 'error')
             return render_template('yeni_baslik.html', default_baslik_adi=baslik_adi)
 
-        if any(c.isupper() for c in baslik_adi):
-            flash("Başlık yalnızca küçük harf içermelidir.", 'error')
-            return render_template('yeni_baslik.html', default_baslik_adi=baslik_adi)
+        # Büyük harfleri küçük harfe çevir
+        baslik_adi = baslik_adi.lower()
 
         with get_db_connection() as conn:
             try:
@@ -465,9 +464,8 @@ def yeni_entry(baslik_id):
                 flash("Entry metni boş olamaz!", 'error')
                 return render_template('yeni_entry.html', baslik=baslik)
 
-            if any(c.isupper() for c in entry_metni):
-                flash("Entry yalnızca küçük harf içermelidir.", 'error')
-                return render_template('yeni_entry.html', baslik=baslik)
+            # Büyük harfleri küçük harfe çevir
+            entry_metni = entry_metni.lower()
 
             conn.execute('INSERT INTO entryler (entry_metni, baslik_id, yazar_id) VALUES (?, ?, ?)', 
                          (entry_metni, baslik_id, yazar_id))
@@ -926,9 +924,8 @@ def entry_duzenle(entry_id):
                 flash("Entry metni boş olamaz!", 'error')
                 return render_template('entry_duzenle.html', entry=entry)
 
-            if any(c.isupper() for c in yeni_entry_metni):
-                flash("Entry yalnızca küçük harf içermelidir.", 'error')
-                return render_template('entry_duzenle.html', entry=entry)
+            # Büyük harfleri küçük harfe çevir
+            yeni_entry_metni = yeni_entry_metni.lower()
 
             conn.execute('UPDATE entryler SET entry_metni = ? WHERE id = ?', 
                          (yeni_entry_metni, entry_id))
