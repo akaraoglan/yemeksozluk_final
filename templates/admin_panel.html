@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Paneli - Yemek Sözlük{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1>Admin Paneli</h1>
+    
+    <!-- İstatistikler -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title">Toplam Kullanıcı</h5>
+                    <h2 class="text-primary">{{ total_users }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title">Toplam Entry</h5>
+                    <h2 class="text-success">{{ total_entries }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title">Bekleyen Şikayet</h5>
+                    <h2 class="text-danger">{{ total_reports }}</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Son Şikayetler -->
+    <div class="card">
+        <div class="card-header">
+            <h5>Son Şikayetler</h5>
+        </div>
+        <div class="card-body">
+            {% if recent_reports %}
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Tarih</th>
+                                <th>Şikayet Eden</th>
+                                <th>Entry Yazarı</th>
+                                <th>Şikayet Türü</th>
+                                <th>Durum</th>
+                                <th>İşlem</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for report in recent_reports %}
+                            <tr>
+                                <td>{{ report.timestamp }}</td>
+                                <td>{{ report.reporter_username }}</td>
+                                <td>{{ report.entry_author }}</td>
+                                <td>
+                                    <span class="badge badge-{% if report.report_type == 'spam' %}warning{% elif report.report_type == 'inappropriate' %}danger{% elif report.report_type == 'harassment' %}danger{% else %}secondary{% endif %}">
+                                        {{ report.report_type }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge badge-{% if report.status == 'pending' %}warning{% elif report.status == 'resolved' %}success{% else %}info{% endif %}">
+                                        {{ report.status }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if report.status == 'pending' %}
+                                        <a href="{{ url_for('moderator_panel') }}" class="btn btn-sm btn-primary">İncele</a>
+                                    {% else %}
+                                        {{ report.action_taken or 'İşlem yapıldı' }}
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p class="text-muted">Henüz şikayet bulunmuyor.</p>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="mt-3">
+        <a href="{{ url_for('moderator_panel') }}" class="btn btn-primary">Moderator Paneli</a>
+        <a href="{{ url_for('index') }}" class="btn btn-secondary">Ana Sayfa</a>
+    </div>
+</div>
+{% endblock %} 

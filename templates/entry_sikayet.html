@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block title %}Entry Şikayet - Yemek Sözlük{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4>Entry Şikayet</h4>
+                </div>
+                <div class="card-body">
+                    <div class="mb-4">
+                        <h5>Şikayet Edilen Entry:</h5>
+                        <div class="border p-3 bg-light">
+                            <p><strong>Başlık:</strong> {{ entry.baslik_adi }}</p>
+                            <p><strong>Yazar:</strong> {{ entry.username }}</p>
+                            <p><strong>Entry:</strong></p>
+                            <p class="mb-0">{{ entry.entry_metni }}</p>
+                        </div>
+                    </div>
+                    
+                    <form method="POST">
+                        <div class="form-group">
+                            <label for="report_type">Şikayet Türü:</label>
+                            <select class="form-control" id="report_type" name="report_type" required>
+                                <option value="">Seçiniz...</option>
+                                <option value="spam">Spam / Gereksiz İçerik</option>
+                                <option value="inappropriate">Uygunsuz İçerik</option>
+                                <option value="harassment">Taciz / Hakaret</option>
+                                <option value="other">Diğer</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="report_reason">Şikayet Nedeni:</label>
+                            <textarea class="form-control" id="report_reason" name="report_reason" 
+                                      rows="4" placeholder="Şikayet nedeninizi detaylı olarak açıklayın..." required></textarea>
+                        </div>
+                        
+                        <div class="mt-3">
+                            <button type="submit" class="btn btn-danger">Şikayet Gönder</button>
+                            <a href="{{ url_for('baslik_detay', baslik_id=entry.baslik_id) }}" class="btn btn-secondary">İptal</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

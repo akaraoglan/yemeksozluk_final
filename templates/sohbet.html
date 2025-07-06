@@ -106,6 +106,14 @@
             <a href="{{ url_for('profil', username=other_user.username) }}">({{ other_user.username }} profili)</a>
         </div>
 
+        {% if request.args.get('entry_id') and entry_info %}
+        <div class="alert alert-info" style="margin-bottom: 15px;">
+            <b>Entry Hakkında Mesajlaşıyorsunuz:</b><br>
+            <span style="color:#007bff; font-weight:bold;">Başlık:</span> <a href="{{ url_for('baslik_detay', baslik_id=entry_info.baslik_id) }}">{{ entry_info.baslik_adi }}</a><br>
+            <span style="color:#333;">Entry:</span> {{ entry_info.entry_metni }}
+        </div>
+        {% endif %}
+
         <div class="messages" id="chat-messages">
             {% if messages %}
                 {% for message in messages %}
@@ -122,7 +130,7 @@
         </div>
 
         <div class="message-form">
-            <form action="{{ url_for('sohbet', other_user_id=other_user.id) }}" method="POST" style="display: flex; width: 100%; gap: 10px;">
+            <form action="{{ url_for('sohbet', other_user_id=other_user.id) }}{% if request.args.get('entry_id') %}?entry_id={{ request.args.get('entry_id') }}{% endif %}" method="POST" style="display: flex; width: 100%; gap: 10px;">
                 <textarea name="message_text" placeholder="Mesajınızı yazın..." required></textarea>
                 <button type="submit">Gönder</button>
             </form>

@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4>Entry Düzenle</h4>
+                    <small class="text-muted">Başlık: {{ entry.baslik_adi }}</small>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        <div class="form-group">
+                            <label for="entry_metni">Entry Metni:</label>
+                            <textarea class="form-control" id="entry_metni" name="entry_metni" rows="6" required>{{ entry.entry_metni }}</textarea>
+                            <small class="form-text text-muted">Entry yalnızca küçük harf içermelidir.</small>
+                        </div>
+                        <div class="mt-3">
+                            <button type="submit" class="btn btn-primary">Güncelle</button>
+                            <a href="{{ url_for('baslik_detay', baslik_id=entry.baslik_id) }}" class="btn btn-secondary">İptal</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

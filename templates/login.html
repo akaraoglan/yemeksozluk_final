@@ -3,12 +3,35 @@
 {% block title %}Giriş Yap - Yemek Sözlük{% endblock %}
 
 {% block content %}
-    <h1>Giriş Yap</h1>
-    <form method="POST">
-        <label for="username">Kullanıcı Adı:</label><br>
-        <input type="text" id="username" name="username" required><br><br>
-        <label for="password">Şifre:</label><br>
-        <input type="password" id="password" name="password" required><br><br>
-        <input type="submit" value="Giriş Yap">
-    </form>
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h4>Giriş Yap</h4>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        <div class="form-group">
+                            <label for="username">Kullanıcı Adı:</label>
+                            <input type="text" class="form-control" id="username" name="username" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="password">Şifre:</label>
+                            <input type="password" class="form-control" id="password" name="password" required>
+                        </div>
+                        <div class="mt-3">
+                            <button type="submit" class="btn btn-primary">Giriş Yap</button>
+                            <a href="{{ url_for('register') }}" class="btn btn-secondary">Kayıt Ol</a>
+                        </div>
+                    </form>
+                    
+                    <div class="mt-3">
+                        <a href="{{ url_for('password_reset_request') }}" class="text-muted">Şifremi unuttum</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}

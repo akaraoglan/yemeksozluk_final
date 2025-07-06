@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+
+{% block title %}Moderator Paneli - Yemek Sözlük{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1>Moderator Paneli</h1>
+    
+    <!-- Bekleyen Şikayetler -->
+    <div class="card">
+        <div class="card-header">
+            <h5>Bekleyen Şikayetler</h5>
+        </div>
+        <div class="card-body">
+            {% if pending_reports %}
+                {% for report in pending_reports %}
+                <div class="border p-3 mb-3">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <h6>Şikayet #{{ report.id }}</h6>
+                            <p><strong>Şikayet Eden:</strong> {{ report.reporter_username }}</p>
+                            <p><strong>Entry Yazarı:</strong> {{ report.entry_author }}</p>
+                            <p><strong>Şikayet Türü:</strong> 
+                                <span class="badge badge-{% if report.report_type == 'spam' %}warning{% elif report.report_type == 'inappropriate' %}danger{% elif report.report_type == 'harassment' %}danger{% else %}secondary{% endif %}">
+                                    {{ report.report_type }}
+                                </span>
+                            </p>
+                            <p><strong>Şikayet Nedeni:</strong> {{ report.report_reason }}</p>
+                            <p><strong>Tarih:</strong> {{ report.timestamp }}</p>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="border p-2 bg-light">
+                                <h6>Şikayet Edilen Entry:</h6>
+                                <p class="mb-0">{{ report.entry_metni[:200] }}{% if report.entry_metni|length > 200 %}...{% endif %}</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-3">
+                        <form method="POST" action="{{ url_for('moderator_action', report_id=report.id) }}" class="d-inline">
+                            <input type="hidden" name="action" value="delete_entry">
+                            <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Bu entry\'yi silmek istediğinizden emin misiniz?')">
+                                Entry'yi Sil
+                            </button>
+                        </form>
+                        
+                        <form method="POST" action="{{ url_for('moderator_action', report_id=report.id) }}" class="d-inline">
+                            <input type="hidden" name="action" value="warn_user">
+                            <div class="form-group">
+                                <label for="moderator_note_{{ report.id }}_warn">Uyarı Nedeni (Opsiyonel):</label>
+                                <input type="text" class="form-control form-control-sm d-inline-block" style="width: 200px;" 
+                                       name="moderator_note" id="moderator_note_{{ report.id }}_warn" 
+                                       placeholder="Uyarı nedeni...">
+                            </div>
+                            <button type="submit" class="btn btn-warning btn-sm">
+                                Kullanıcıyı Uyar
+                            </button>
+                        </form>
+                        
+                        <form method="POST" action="{{ url_for('moderator_action', report_id=report.id) }}" class="d-inline">
+                            <input type="hidden" name="action" value="ban_user">
+                            <div class="form-group">
+                                <label for="moderator_note_{{ report.id }}_ban">Ban Nedeni (Opsiyonel):</label>
+                                <input type="text" class="form-control form-control-sm d-inline-block" style="width: 200px;" 
+                                       name="moderator_note" id="moderator_note_{{ report.id }}_ban" 
+                                       placeholder="Ban nedeni...">
+                            </div>
+                            <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Bu kullanıcıyı banlamak istediğinizden emin misiniz?')">
+                                Kullanıcıyı Banla
+                            </button>
+                        </form>
+                        
+                        <form method="POST" action="{{ url_for('moderator_action', report_id=report.id) }}" class="d-inline">
+                            <input type="hidden" name="action" value="dismiss">
+                            <button type="submit" class="btn btn-secondary btn-sm">
+                                Şikayeti Reddet
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <p class="text-muted">Bekleyen şikayet bulunmuyor.</p>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="mt-3">
+        <a href="{{ url_for('admin_panel') }}" class="btn btn-primary">Admin Paneli</a>
+        <a href="{{ url_for('index') }}" class="btn btn-secondary">Ana Sayfa</a>
+    </div>
+</div>
+{% endblock %} 

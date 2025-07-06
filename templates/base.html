@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Yemek Sözlük{% endblock %}</title>
+    <title>{% block title %}Otel Sözlük{% endblock %}</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <style>
         body { font-family: sans-serif; margin: 20px; background-color: #f4f4f4; color: #333; }
@@ -29,14 +29,15 @@
             max-width: 600px;
         }
         .search-box input[type="text"] {
-            width: calc(100% - 90px);
+            width: calc(100% - 120px);
             padding: 10px;
             border: 1px solid #ccc;
             border-radius: 5px 0 0 5px;
             box-sizing: border-box;
+            margin-right: 10px;
         }
         .search-box input[type="submit"] {
-            padding: 10px 15px;
+            padding: 10px 20px;
             background-color: #28a745;
             color: white;
             border: none;
@@ -47,6 +48,61 @@
         }
         .search-box input[type="submit"]:hover {
             background-color: #218838;
+        }
+
+        /* Arama sonuçları dropdown */
+        .search-results {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #ddd;
+            border-top: none;
+            border-radius: 0 0 5px 5px;
+            max-height: 300px;
+            overflow-y: auto;
+            z-index: 1000;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .search-result-item {
+            padding: 10px 15px;
+            border-bottom: 1px solid #f0f0f0;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .search-result-item:last-child {
+            border-bottom: none;
+        }
+        
+        .search-result-item:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .search-result-title {
+            color: #333;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        
+        .search-result-count {
+            background-color: #e9ecef;
+            color: #6c757d;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: 500;
+        }
+        
+        .search-container {
+            position: relative;
+            display: inline-block;
+            width: 100%;
+            max-width: 600px;
         }
 
         /* Bildirim ve Mesaj ikonu stilleri */
@@ -80,15 +136,13 @@
 <body>
     <div class="container">
         <header>
-            <h1><a href="/" style="text-decoration: none; color: #333;">Yemek Sözlük</a></h1>
+            <h1><a href="/" style="text-decoration: none; color: #333;">Otel Sözlük</a></h1>
             <nav>
                 <ul>
                     {% if is_logged_in %}
                         <li>Merhaba, <a href="{{ url_for('profil', username=session.username) }}">{{ session.username }}</a>!</li>
                         <li><a href="{{ url_for('takip_ettiklerim') }}">Takip Ettiklerim</a></li>
                         <li><a href="{{ url_for('begenilenler') }}">Beğenilenler</a></li>
-                        
-                        {# Mesaj ikonu ve sayısı (YENİ EKLENDİ) #}
                         <li class="message-icon">
                             <a href="{{ url_for('mesajlar') }}" title="Mesajlar">
                                 <i class="fas fa-envelope"></i>
@@ -97,8 +151,6 @@
                                 {% endif %}
                             </a>
                         </li>
-
-                        {# Bildirim ikonu ve sayısı #}
                         <li class="notification-icon">
                             <a href="{{ url_for('bildirimler') }}" title="Bildirimler">
                                 <i class="fas fa-bell"></i>
@@ -107,8 +159,13 @@
                                 {% endif %}
                             </a>
                         </li>
-                        
                         <li><a href="{{ url_for('ayarlar') }}">Ayarlar</a></li>
+                        {% if session.get('is_admin') %}
+                            <li><a href="{{ url_for('admin_panel') }}">Admin Paneli</a></li>
+                        {% endif %}
+                        {% if session.get('is_moderator') or session.get('is_admin') %}
+                            <li><a href="{{ url_for('moderator_panel') }}">Moderator Paneli</a></li>
+                        {% endif %}
                         <li><a href="{{ url_for('logout') }}">Çıkış Yap</a></li>
                     {% else %}
                         <li><a href="{{ url_for('register') }}">Kayıt Ol</a></li>
@@ -119,10 +176,13 @@
         </header>
 
         <div class="search-box">
-            <form action="{{ url_for('arama') }}" method="POST">
-                <input type="text" name="arama_terimi" placeholder="Başlık ara veya yeni başlık aç..." value="{{ default_baslik_adi | default('') }}">
-                <input type="submit" value="Ara / Aç">
-            </form>
+            <div class="search-container">
+                <form action="{{ url_for('arama') }}" method="POST" id="searchForm">
+                    <input type="text" name="arama_terimi" id="searchInput" placeholder="Başlık ara veya yeni başlık aç..." value="{{ default_baslik_adi | default('') }}" autocomplete="off">
+                    <input type="submit" value="Ara / Aç">
+                </form>
+                <div id="searchResults" class="search-results" style="display: none;"></div>
+            </div>
         </div>
 
         {% with messages = get_flashed_messages(with_categories=true) %}
@@ -137,5 +197,116 @@
             {% block content %}{% endblock %}
         </main>
     </div>
+
+    <script>
+        // Arama özelliği
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchInput = document.getElementById('searchInput');
+            const searchResults = document.getElementById('searchResults');
+            let searchTimeout;
+
+            searchInput.addEventListener('input', function() {
+                const query = this.value.trim();
+                
+                // Önceki timeout'u temizle
+                clearTimeout(searchTimeout);
+                
+                if (query.length < 2) {
+                    searchResults.style.display = 'none';
+                    return;
+                }
+
+                // 300ms bekle ve sonra arama yap
+                searchTimeout = setTimeout(function() {
+                    fetch('/arama_ajax', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({query: query})
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        displaySearchResults(data.results);
+                    })
+                    .catch(error => {
+                        console.error('Arama hatası:', error);
+                    });
+                }, 300);
+            });
+
+            // Arama sonuçlarını göster
+            function displaySearchResults(results) {
+                if (results.length === 0) {
+                    searchResults.innerHTML = '<div class="search-result-item">Sonuç bulunamadı</div>';
+                } else {
+                    searchResults.innerHTML = results.map(result => `
+                        <div class="search-result-item" onclick="window.location.href='${result.url}'">
+                            <span class="search-result-title">${result.title}</span>
+                            <span class="search-result-count">${result.entry_count}</span>
+                        </div>
+                    `).join('');
+                }
+                searchResults.style.display = 'block';
+            }
+
+            // Sayfa herhangi bir yerine tıklandığında sonuçları gizle
+            document.addEventListener('click', function(e) {
+                if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
+                    searchResults.style.display = 'none';
+                }
+            });
+
+            // Enter tuşuna basıldığında formu gönder
+            searchInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    searchResults.style.display = 'none';
+                }
+            });
+        });
+
+        // Paylaşma özelliği
+        function shareEntry(entryId, entryText, baslikAdi) {
+            const shareData = {
+                title: `${baslikAdi} - Yemek Sözlük`,
+                text: entryText,
+                url: window.location.href
+            };
+
+            if (navigator.share) {
+                // Native sharing API varsa kullan
+                navigator.share(shareData)
+                    .then(() => console.log('Başarıyla paylaşıldı'))
+                    .catch((error) => console.log('Paylaşma hatası:', error));
+            } else {
+                // Fallback: Kopyala-yapıştır
+                const shareText = `${baslikAdi}\n\n${entryText}\n\n${window.location.href}`;
+                
+                if (navigator.clipboard) {
+                    navigator.clipboard.writeText(shareText).then(() => {
+                        alert('Entry linki panoya kopyalandı!');
+                    }).catch(() => {
+                        // Fallback: Eski yöntem
+                        const textArea = document.createElement('textarea');
+                        textArea.value = shareText;
+                        document.body.appendChild(textArea);
+                        textArea.select();
+                        document.execCommand('copy');
+                        document.body.removeChild(textArea);
+                        alert('Entry linki panoya kopyalandı!');
+                    });
+                } else {
+                    // En eski fallback
+                    const textArea = document.createElement('textarea');
+                    textArea.value = shareText;
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textArea);
+                    alert('Entry linki panoya kopyalandı!');
+                }
+            }
+        }
+    </script>
 </body>
 </html>

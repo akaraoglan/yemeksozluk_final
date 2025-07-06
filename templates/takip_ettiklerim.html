@@ -101,20 +101,30 @@
                     <div class="entry-text">
                         <p>{{ entry.entry_metni }}</p>
                     </div>
-                    {# Beğeni/Paylaş butonlarını burada göstermek isterseniz, aşağıdaki div'i ve içindeki kodu aktif edin #}
-                    {# VE yemeksozluk.py'deki takip_ettiklerim rotasına liked_by_user bilgisini ekleyin #}
-                    {# <div class="entry-actions">
+                    <div class="entry-actions">
                         {% if is_logged_in %}
                             {% if entry.liked_by_user %}
-                                <a href="{{ url_for('entry_begenmekten_vazgec', entry_id=entry.id) }}" class="liked" title="Beğeniyi Kaldır"><i class="fas fa-heart"></i></a>
+                                <a href="{{ url_for('entry_begenmekten_vazgec', entry_id=entry.entry_id) }}" class="liked" title="Beğeniyi Kaldır"><i class="fas fa-heart"></i></a>
                             {% else %}
-                                <a href="{{ url_for('entry_begen', entry_id=entry.id) }}" title="Beğen"><i class="far fa-heart"></i></a>
+                                <a href="{{ url_for('entry_begen', entry_id=entry.entry_id) }}" title="Beğen"><i class="far fa-heart"></i></a>
+                            {% endif %}
+                            
+                            {# Entry'nin yazarı ise düzenleme ve silme butonlarını göster #}
+                            {% if entry.yazar_id == session.user_id %}
+                                <a href="{{ url_for('entry_duzenle', entry_id=entry.entry_id) }}" title="Düzenle" style="color: #007bff;"><i class="fas fa-edit"></i></a>
+                                <a href="{{ url_for('entry_sil', entry_id=entry.entry_id) }}" title="Sil" style="color: #dc3545;" onclick="return confirm('Bu entry\'yi silmek istediğinizden emin misiniz?')"><i class="fas fa-trash"></i></a>
+                            {% endif %}
+                            
+                            {# Şikayet butonu - kendi entry'sini şikayet edemez #}
+                            {% if entry.yazar_id != session.user_id %}
+                                <a href="{{ url_for('entry_sikayet', entry_id=entry.entry_id) }}" title="Şikayet Et" style="color: #ffc107;"><i class="fas fa-flag"></i></a>
+                                <a href="{{ url_for('sohbet', other_user_id=entry.yazar_id) }}?entry_id={{ entry.entry_id }}" title="Mesaj Gönder" style="color: #6c757d;"><i class="fas fa-envelope"></i></a>
                             {% endif %}
                         {% else %}
                             <span style="color: #ccc; cursor: default;" title="Beğenmek için giriş yapın"><i class="far fa-heart"></i></span>
                         {% endif %}
-                        <span class="share-btn" title="Paylaş"><i class="fas fa-share-alt"></i></span>
-                    </div> #}
+                        <span class="share-btn" title="Paylaş" onclick="shareEntry({{ entry.entry_id }}, '{{ entry.entry_metni|replace('\'', '\\\'')|replace('\n', ' ') }}', '{{ entry.baslik_adi|replace('\'', '\\\'') }}')"><i class="fas fa-share-alt"></i></span>
+                    </div>
                     <div class="entry-info">
                         <p>Yazar: <a href="{{ url_for('profil', username=entry.username) }}">{{ entry.username }}</a></p>
                         <p>Tarih: {{ entry.tarih }}</p>
