@@ -301,7 +301,7 @@ def baslik_detay(baslik_id, page=1):
         offset = (page - 1) * ENTRIES_PER_PAGE
 
         entryler_data = conn.execute(f'''
-            SELECT e.*, u.username 
+            SELECT e.*, u.username, u.is_banned 
             FROM entryler e
             JOIN users u ON e.yazar_id = u.id
             WHERE e.baslik_id = ? 
@@ -318,6 +318,8 @@ def baslik_detay(baslik_id, page=1):
                 
                 entry_dict = dict(entry) # Row objesini dict'e çevir
                 entry_dict['liked_by_user'] = liked
+                entry_dict['is_read'] = True  # Artık okundu olarak işaretlendi
+                entry_dict['is_banned'] = entry['is_banned']
                 entry_list.append(entry_dict)
         else:
             for entry in entryler_data:
